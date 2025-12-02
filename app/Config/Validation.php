@@ -59,15 +59,13 @@ class Validation extends BaseConfig
 
     public array $forumStore = [
         'nama'        => 'required|max_length[100]',
-        'jenis_forum' => 'permit_empty|in_list[akademik,proyek,komunitas,lainnya]',
-        'is_public'   => 'permit_empty|in_list[0,1]',
+        'jenis_forum' => 'permit_empty|in_list[publik,privat]',
         'deskripsi'   => 'permit_empty',
     ];
 
     public array $forumUpdate = [
         'nama'        => 'permit_empty|max_length[100]',
-        'jenis_forum' => 'permit_empty|in_list[akademik,proyek,komunitas,lainnya]',
-        'is_public'   => 'permit_empty|in_list[0,1]',
+        'jenis_forum' => 'permit_empty|in_list[publik,privat]',
         'deskripsi'   => 'permit_empty',
     ];
 

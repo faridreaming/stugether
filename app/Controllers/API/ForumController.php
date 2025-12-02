@@ -23,8 +23,7 @@ class ForumController extends BaseAPIController
 				properties: [
 					new OAT\Property(property: "nama", type: "string"),
 					new OAT\Property(property: "deskripsi", type: "string"),
-					new OAT\Property(property: "jenis_forum", type: "string", enum: ["akademik","proyek","komunitas","lainnya"]),
-					new OAT\Property(property: "is_public", type: "integer", enum: [0,1])
+					new OAT\Property(property: "jenis_forum", type: "string", enum: ["publik", "privat"]),
 				]
 			)
 		),
@@ -40,19 +39,22 @@ class ForumController extends BaseAPIController
 		if (! $this->validate($rules)) {
 			return $this->fail(implode('; ', $this->validator->getErrors()), 400);
 		}
-		$data    = $this->request->getJSON(true) ?? $this->request->getPost();
-		$current = $this->currentUser();
-		$model   = new ForumModel();
+		$data       = $this->request->getJSON(true) ?? $this->request->getPost();
+		$current    = $this->currentUser();
+		$model      = new ForumModel();
+		$jenisForum = $data['jenis_forum'] ?? 'publik';
 
-		$kode = $this->generateUniqueKode();
-		$forumId = $model->insert([
-			'admin_id'     => $current->user_id,
-			'nama'         => $data['nama'],
-			'deskripsi'    => $data['deskripsi'] ?? null,
-			'jenis_forum'  => $data['jenis_forum'] ?? 'akademik',
-			'is_public'    => (int) ($data['is_public'] ?? 0),
-			'kode_undangan'=> $kode,
-		], true);
+		$payload = [
+			'admin_id'    => $current->user_id,
+			'nama'        => $data['nama'],
+			'deskripsi'   => $data['deskripsi'] ?? null,
+			'jenis_forum' => $jenisForum,
+		];
+		if ($jenisForum === 'privat') {
+			$payload['kode_undangan'] = $this->generateUniqueKode();
+		}
+
+		$forumId = $model->insert($payload, true);
 		$forum = $model->find($forumId);
 
 		// auto-join admin
@@ -71,9 +73,9 @@ class ForumController extends BaseAPIController
 		summary: "List forums",
 		security: [["bearerAuth" => []]],
 		parameters: [
-			new OAT\Parameter(name: "scope", in: "query", required: false, schema: new OAT\Schema(type: "string", enum: ["mine","public","all"])),
+			new OAT\Parameter(name: "scope", in: "query", required: false, schema: new OAT\Schema(type: "string", enum: ["mine", "public", "all"])),
 			new OAT\Parameter(name: "q", in: "query", required: false, schema: new OAT\Schema(type: "string")),
-			new OAT\Parameter(name: "sort", in: "query", required: false, schema: new OAT\Schema(type: "string", enum: ["created_at","nama"])),
+			new OAT\Parameter(name: "sort", in: "query", required: false, schema: new OAT\Schema(type: "string", enum: ["created_at", "nama"])),
 			new OAT\Parameter(name: "page", in: "query", required: false, schema: new OAT\Schema(type: "integer")),
 			new OAT\Parameter(name: "per_page", in: "query", required: false, schema: new OAT\Schema(type: "integer"))
 		],
@@ -91,7 +93,7 @@ class ForumController extends BaseAPIController
 		$builder = (new ForumModel())->builder();
 		if ($scope === 'mine') {
 			$builder->join('anggota_forum af', 'af.forum_id = forums.forum_id', 'inner')
-			        ->where('af.user_id', $current->user_id);
+				->where('af.user_id', $current->user_id);
 		} elseif ($scope === 'public') {
 			$builder->where('is_public', 1);
 		}
@@ -99,7 +101,7 @@ class ForumController extends BaseAPIController
 			$builder->groupStart()
 				->like('nama', $q)
 				->orLike('deskripsi', $q)
-			->groupEnd();
+				->groupEnd();
 		}
 		$allowedSort = ['created_at', 'nama'];
 		if (! in_array($sort, $allowedSort, true)) {
@@ -178,8 +180,7 @@ class ForumController extends BaseAPIController
 				properties: [
 					new OAT\Property(property: "nama", type: "string"),
 					new OAT\Property(property: "deskripsi", type: "string"),
-					new OAT\Property(property: "jenis_forum", type: "string"),
-					new OAT\Property(property: "is_public", type: "integer", enum: [0,1]),
+					new OAT\Property(property: "jenis_forum", type: "string", enum: ["publik", "privat"]),
 				]
 			)
 		),
@@ -196,7 +197,7 @@ class ForumController extends BaseAPIController
 			return $this->fail(implode('; ', $this->validator->getErrors()), 400);
 		}
 		$data  = $this->request->getJSON(true) ?? $this->request->getRawInput();
-		$patch = array_intersect_key($data, array_flip(['nama', 'deskripsi', 'jenis_forum', 'is_public']));
+		$patch = array_intersect_key($data, array_flip(['nama', 'deskripsi', 'jenis_forum']));
 		$model = new ForumModel();
 		$model->update($forumId, $patch);
 		$forum = $model->find($forumId);
@@ -224,14 +225,11 @@ class ForumController extends BaseAPIController
 	{
 		$model = new ForumModel();
 		for ($i = 0; $i < 5; $i++) {
-			$len  = random_int(6, 8);
-			$code = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, $len);
+			$code = substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6);
 			if (! $model->where('kode_undangan', $code)->first()) {
 				return $code;
 			}
 		}
-		return bin2hex(random_bytes(4));
+		return substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 6);
 	}
 }
-
-

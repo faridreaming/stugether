@@ -862,17 +862,8 @@
                                     "jenis_forum": {
                                         "type": "string",
                                         "enum": [
-                                            "akademik",
-                                            "proyek",
-                                            "komunitas",
-                                            "lainnya"
-                                        ]
-                                    },
-                                    "is_public": {
-                                        "type": "integer",
-                                        "enum": [
-                                            0,
-                                            1
+                                            "publik",
+                                            "privat"
                                         ]
                                     }
                                 },
@@ -1015,13 +1006,10 @@
                                         "type": "string"
                                     },
                                     "jenis_forum": {
-                                        "type": "string"
-                                    },
-                                    "is_public": {
-                                        "type": "integer",
+                                        "type": "string",
                                         "enum": [
-                                            0,
-                                            1
+                                            "publik",
+                                            "privat"
                                         ]
                                     }
                                 },
