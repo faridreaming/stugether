@@ -7,152 +7,85 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->setAutoRoute(false);
 
-// Public
-$routes->post('auth/register', 'API\AuthController::register');
-$routes->post('auth/login', 'API\AuthController::login');
+// ========================
+// PUBLIC ROUTES (No Authentication Required)
+// ========================
+$routes->group('api', ['namespace' => 'App\Controllers\API'], static function ($routes) {
+    // Auth - Public endpoints
+    $routes->post('auth/register', 'AuthController::register');
+    $routes->post('auth/login', 'AuthController::login');
+});
 
-// Protected with JWT
-$routes->group('', ['filter' => 'jwt'], static function (RouteCollection $routes) {
-	// Auth
-	$routes->post('auth/logout', 'API\AuthController::logout');
-	$routes->get('auth/me', 'API\AuthController::me');
+// ========================
+// PROTECTED ROUTES (JWT Authentication Required)
+// ========================
+$routes->group('api', ['namespace' => 'App\Controllers\API', 'filter' => 'jwt'], static function ($routes) {
+    
+    // ========================
+    // Auth Routes (Protected)
+    // ========================
+    $routes->post('auth/logout', 'AuthController::logout');
+    $routes->get('auth/me', 'AuthController::me');
 
-	// Users
-	$routes->get('users/(:num)', 'API\UserController::show/$1');
-	$routes->put('users/(:num)', 'API\UserController::update/$1');
+    // ========================
+    // User Routes
+    // ========================
+    $routes->get('users/(:num)', 'UserController::show/$1');
+    $routes->put('users/(:num)', 'UserController::update/$1');
 
-	// Forums
-	$routes->post('forums', 'API\ForumController::store');
-	$routes->get('forums', 'API\ForumController::index');
-	$routes->get('forums/recommended', 'API\ForumController::recommended');
-	$routes->get('forums/(:num)', 'API\ForumController::show/$1');
-	$routes->patch('forums/(:num)', 'API\ForumController::update/$1', ['filter' => 'forumAdmin']);
-	$routes->delete('forums/(:num)', 'API\ForumController::destroy/$1', ['filter' => 'forumAdmin']);
-
-	// Forum members
-	$routes->post('forums/(:num)/join', 'API\ForumMemberController::join/$1');
-	$routes->post('forums/(:num)/leave', 'API\ForumMemberController::leave/$1', ['filter' => 'forumMember']);
-	$routes->get('forums/(:num)/members', 'API\ForumMemberController::members/$1');
-	$routes->patch('forums/(:num)/members/(:num)', 'API\ForumMemberController::update/$1/$2', ['filter' => 'forumAdmin']);
     // ========================
     // Forum Routes
     // ========================
-    $routes->get('forums', 'ForumController::index', ['filter' => 'jwt']);
-    $routes->post('forums', 'ForumController::store', ['filter' => 'jwt']);
+    $routes->post('forums', 'ForumController::store');
+    $routes->get('forums', 'ForumController::index');
+    $routes->get('forums/recommended', 'ForumController::recommended');
     $routes->get('forums/(:num)', 'ForumController::show/$1');
-    $routes->put('forums/(:num)', 'ForumController::update/$1');
-    $routes->delete('forums/(:num)', 'ForumController::delete/$1');
-
-    // TAMBAHKAN INI:
-    $routes->post('forums/(:num)/join', 'ForumController::join/$1', ['filter' => 'jwt']);
-    $routes->post('forums/(:num)/leave', 'ForumController::leave/$1', ['filter' => 'jwt']);
+    $routes->patch('forums/(:num)', 'ForumController::update/$1', ['filter' => 'forumAdmin']);
+    $routes->delete('forums/(:num)', 'ForumController::destroy/$1', ['filter' => 'forumAdmin']);
+    
+    // Forum Members
+    $routes->post('forums/(:num)/join', 'ForumController::join/$1');
+    $routes->post('forums/(:num)/leave', 'ForumController::leave/$1');
+    $routes->get('forums/(:num)/members', 'ForumController::members/$1');
+    $routes->patch('forums/(:num)/members/(:num)', 'ForumMemberController::update/$1/$2', ['filter' => 'forumAdmin']);
 
     // ========================
     // Task Routes
     // ========================
-
-    // List & create task per forum
-    $routes->get('forums/(:num)/tasks', 'TaskController::index/$1', ['filter' => 'jwt']);
-    $routes->post('forums/(:num)/tasks', 'TaskController::store/$1', ['filter' => 'jwt']);
-
-    // Operasi ke satu task
-    $routes->get('tasks/(:num)', 'TaskController::show/$1', ['filter' => 'jwt']);
-    $routes->patch('tasks/(:num)', 'TaskController::update/$1', ['filter' => 'jwt']);
-    $routes->delete('tasks/(:num)', 'TaskController::destroy/$1', ['filter' => 'jwt']);
+    $routes->get('forums/(:num)/tasks', 'TaskController::index/$1');
+    $routes->post('forums/(:num)/tasks', 'TaskController::store/$1');
+    $routes->get('tasks/(:num)', 'TaskController::show/$1');
+    $routes->patch('tasks/(:num)', 'TaskController::update/$1');
+    $routes->delete('tasks/(:num)', 'TaskController::destroy/$1');
 
     // ========================
     // Note Routes
     // ========================
-
-    // List & create catatan per forum
-    $routes->get('forums/(:num)/notes', 'NoteController::index/$1', ['filter' => 'jwt']);
-    $routes->post('forums/(:num)/notes', 'NoteController::store/$1', ['filter' => 'jwt']);
-
-    // Operasi per-note by id
-    $routes->get('notes/(:num)', 'NoteController::show/$1', ['filter' => 'jwt']);
-    $routes->patch('notes/(:num)', 'NoteController::update/$1', ['filter' => 'jwt']);
-    $routes->delete('notes/(:num)', 'NoteController::destroy/$1', ['filter' => 'jwt']);
+    $routes->get('forums/(:num)/notes', 'NoteController::index/$1');
+    $routes->post('forums/(:num)/notes', 'NoteController::store/$1');
+    $routes->get('notes/(:num)', 'NoteController::show/$1');
+    $routes->patch('notes/(:num)', 'NoteController::update/$1');
+    $routes->delete('notes/(:num)', 'NoteController::destroy/$1');
 
     // ========================
     // Discussion Routes
     // ========================
-    $routes->get('forums/(:num)/discussions', 'DiscussionController::index/$1', ['filter' => 'jwt']);
-    $routes->post('forums/(:num)/discussions', 'DiscussionController::store/$1', ['filter' => 'jwt']);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
+    $routes->get('forums/(:num)/discussions', 'DiscussionController::index/$1');
+    $routes->post('forums/(:num)/discussions', 'DiscussionController::store/$1');
+    $routes->get('discussions/(:num)', 'DiscussionController::show/$1');
+    $routes->patch('discussions/(:num)', 'DiscussionController::update/$1');
+    $routes->delete('discussions/(:num)', 'DiscussionController::destroy/$1');
+    $routes->post('discussions/(:num)/replies', 'DiscussionController::reply/$1');
 
-    $routes->post('discussions/(:num)/replies', 'DiscussionController::reply/$1', ['filter' => 'jwt']);
-
-    $routes->get('discussions/(:num)', 'DiscussionController::show/$1', ['filter' => 'jwt']);
-    $routes->patch('discussions/(:num)', 'DiscussionController::update/$1', ['filter' => 'jwt']);
-    $routes->delete('discussions/(:num)', 'DiscussionController::destroy/$1', ['filter' => 'jwt']);
-    $routes->get('forums/(:num)/members', 'ForumController::members/$1', ['filter' => 'jwt']);
->>>>>>> Stashed changes
-
-    $routes->post('discussions/(:num)/replies', 'DiscussionController::reply/$1', ['filter' => 'jwt']);
-
-    $routes->get('discussions/(:num)', 'DiscussionController::show/$1', ['filter' => 'jwt']);
-    $routes->patch('discussions/(:num)', 'DiscussionController::update/$1', ['filter' => 'jwt']);
-    $routes->delete('discussions/(:num)', 'DiscussionController::destroy/$1', ['filter' => 'jwt']);
-    $routes->get('forums/(:num)/members', 'ForumController::members/$1', ['filter' => 'jwt']);
->>>>>>> Stashed changes
-
-    $routes->post('discussions/(:num)/replies', 'DiscussionController::reply/$1', ['filter' => 'jwt']);
-
-    $routes->get('discussions/(:num)', 'DiscussionController::show/$1', ['filter' => 'jwt']);
-    $routes->patch('discussions/(:num)', 'DiscussionController::update/$1', ['filter' => 'jwt']);
-    $routes->delete('discussions/(:num)', 'DiscussionController::destroy/$1', ['filter' => 'jwt']);
-    $routes->get('forums/(:num)/members', 'ForumController::members/$1', ['filter' => 'jwt']);
-
-	// Tasks
-	$routes->post('forums/(:num)/tasks', 'API\TaskController::store/$1', ['filter' => 'forumMember']);
-	$routes->get('forums/(:num)/tasks', 'API\TaskController::index/$1');
-	$routes->get('tasks/(:num)', 'API\TaskController::show/$1');
-	$routes->patch('tasks/(:num)', 'API\TaskController::update/$1');
-	$routes->delete('tasks/(:num)', 'API\TaskController::destroy/$1');
-	$routes->post('tasks/(:num)/attachments', 'API\TaskController::attach/$1', ['filter' => 'forumMember']);
-
-	// Reminders
-	$routes->post('tasks/(:num)/reminder', 'API\ReminderController::store/$1');
-	$routes->get('reminders', 'API\ReminderController::index');
-	$routes->delete('reminders/(:num)', 'API\ReminderController::destroy/$1');
-
-	// Discussions
-	$routes->post('forums/(:num)/discussions', 'API\DiscussionController::store/$1', ['filter' => 'forumMember']);
-	$routes->post('discussions/(:num)/replies', 'API\DiscussionController::reply/$1', ['filter' => 'forumMember']);
-	$routes->get('forums/(:num)/discussions', 'API\DiscussionController::index/$1');
-	$routes->get('discussions/(:num)', 'API\DiscussionController::show/$1');
-	$routes->patch('discussions/(:num)', 'API\DiscussionController::update/$1');
-	$routes->delete('discussions/(:num)', 'API\DiscussionController::destroy/$1');
-
-	// Notes
-	$routes->post('forums/(:num)/notes', 'API\NoteController::store/$1', ['filter' => 'forumMember']);
-	$routes->get('forums/(:num)/notes', 'API\NoteController::index/$1');
-	$routes->get('notes/(:num)', 'API\NoteController::show/$1');
-	$routes->patch('notes/(:num)', 'API\NoteController::update/$1');
-	$routes->delete('notes/(:num)', 'API\NoteController::destroy/$1');
-
-	// Media
-	$routes->post('media', 'API\MediaController::store');
-	$routes->get('forums/(:num)/media', 'API\MediaController::index/$1');
-	$routes->get('media/(:num)', 'API\MediaController::show/$1');
-	$routes->delete('media/(:num)', 'API\MediaController::destroy/$1');
-
-	// Search
-	$routes->get('search', 'API\SearchController::index');
-
-	// Notifications
-	$routes->get('notifications', 'API\NotificationController::index');
-	// (Optional v1.1) TODO: GET /notifications/stream - SSE stream in the future
-
-	// Counts
-	$routes->get('counts', 'API\CountController::index');
-	$routes->get('counts/detailed', 'API\CountController::detailed');
-	$routes->get('counts/forums', 'API\CountController::forums');
-	$routes->get('counts/(:segment)', 'API\CountController::show/$1');
+    // ========================
+    // Reminder Routes
+    // ========================
+    $routes->get('reminders', 'ReminderController::index');
+    $routes->post('reminders', 'ReminderController::create');
+    $routes->delete('reminders/(:num)', 'ReminderController::delete/$1');
 });
 
-// Swagger Docs
-$routes->get('docs', 'Docs::index');
+// ========================
+// DOCUMENTATION
+// ========================
+$routes->get('api/docs', 'Docs::index');
