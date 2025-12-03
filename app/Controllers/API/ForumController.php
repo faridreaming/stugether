@@ -131,8 +131,15 @@ class ForumController extends BaseAPIController
 	{
 		$limit   = min(50, max(1, (int) ($this->request->getGet('limit') ?? 10)));
 		$builder = (new ForumModel())->builder()->where('is_public', 1)->orderBy('created_at', 'DESC');
-		$data    = $builder->get($limit)->getResult();
-		return $this->success($data);
+		$forums  = $builder->get($limit)->getResult();
+
+		$anggotaModel = new AnggotaForumModel();
+		foreach ($forums as $forum) {
+			$memberCount = $anggotaModel->where('forum_id', $forum->forum_id)->countAllResults();
+			$forum->jumlah_anggota = $memberCount;
+		}
+
+		return $this->success($forums);
 	}
 
 	#[OAT\Get(
