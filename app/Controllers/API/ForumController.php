@@ -34,6 +34,57 @@ class ForumController extends BaseAPIController
 			new OAT\Response(response: 401, description: "Unauthorized")
 		]
 	)]
+
+	public function join(int $forumId)
+{
+    $current = $this->currentUser();
+    if (!$current) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON(['message' => 'User tidak terautentikasi']);
+    }
+
+    $data = $this->request->getJSON(true) ?? $this->request->getPost();
+    $kodeUndangan = $data['kode_undangan'] ?? '';
+
+    // Validasi kode undangan
+    if (empty($kodeUndangan)) {
+        return $this->fail('Kode undangan harus diisi', 400);
+    }
+
+    // Cari forum
+    $forum = (new ForumModel())->find($forumId);
+    if (!$forum) {
+        return $this->fail('Forum tidak ditemukan', 404);
+    }
+
+    // Validasi kode undangan
+    if ($forum->kode_undangan !== $kodeUndangan) {
+        return $this->fail('Kode undangan tidak valid', 400);
+    }
+
+    // Cek apakah user sudah join
+    $db = db_connect();
+    $existing = $db->table('anggota_forum')
+        ->where('forum_id', $forumId)
+        ->where('user_id', $current->user_id)
+        ->get()
+        ->getRowArray();
+
+    if ($existing) {
+        return $this->fail('Anda sudah bergabung dengan forum ini', 400);
+    }
+
+    // Tambahkan user ke forum
+    $db->table('anggota_forum')->insert([
+        'forum_id' => $forumId,
+        'user_id' => $current->user_id,
+        'joined_at' => date('Y-m-d H:i:s')
+    ]);
+
+    return $this->success(['ok' => true], 'Berhasil bergabung ke forum');
+}
+
 	public function store()
 	{
 		$rules = config('Validation')->forumStore;
@@ -79,41 +130,53 @@ class ForumController extends BaseAPIController
 		],
 		responses: [new OAT\Response(response: 200, description: "OK")]
 	)]
-	public function index()
-	{
-		$current    = $this->currentUser();
-		$scope      = $this->request->getGet('scope') ?? 'all';
-		$q          = trim((string) ($this->request->getGet('q') ?? ''));
-		$sort       = $this->request->getGet('sort') ?? 'created_at';
-		$page       = max(1, (int) ($this->request->getGet('page') ?? 1));
-		$perPage    = min(100, max(1, (int) ($this->request->getGet('per_page') ?? 10)));
+public function index()
+{
+    $current    = $this->currentUser();
+    $scope      = $this->request->getGet('scope') ?? 'all';
+    $q          = trim((string) ($this->request->getGet('q') ?? ''));
+    $sort       = $this->request->getGet('sort') ?? 'created_at';
+    $page       = max(1, (int) ($this->request->getGet('page') ?? 1));
+    $perPage    = min(100, max(1, (int) ($this->request->getGet('per_page') ?? 10)));
 
-		$builder = (new ForumModel())->builder();
-		if ($scope === 'mine') {
-			$builder->join('anggota_forum af', 'af.forum_id = forums.forum_id', 'inner')
-			        ->where('af.user_id', $current->user_id);
-		} elseif ($scope === 'public') {
-			$builder->where('is_public', 1);
-		}
-		if ($q !== '') {
-			$builder->groupStart()
-				->like('nama', $q)
-				->orLike('deskripsi', $q)
-			->groupEnd();
-		}
-		$allowedSort = ['created_at', 'nama'];
-		if (! in_array($sort, $allowedSort, true)) {
-			$sort = 'created_at';
-		}
-		$builder->orderBy($sort, 'DESC');
+    // Kalau scope=mine tapi user tidak terautentikasi → 401
+	if ($scope === 'mine' && $current === null) {
+    return $this->response
+        ->setStatusCode(401)
+        ->setJSON([
+            'message' => 'User tidak terautentikasi'
+        ]);
+}
 
-		// Pagination
-		$total   = (clone $builder)->countAllResults(false);
-		$results = $builder->get(($page - 1) * $perPage, $perPage)->getResult();
+    $builder = (new ForumModel())->builder();
 
-		$meta = service('paginationSvc')->buildMeta($page, $perPage, $total);
-		return $this->success($results, null, $meta);
-	}
+    if ($scope === 'mine') {
+        $builder->join('anggota_forum af', 'af.forum_id = forums.forum_id', 'inner')
+                ->where('af.user_id', $current->user_id);
+    } elseif ($scope === 'public') {
+        $builder->where('is_public', 1);
+    }
+
+    if ($q !== '') {
+        $builder->groupStart()
+            ->like('nama', $q)
+            ->orLike('deskripsi', $q)
+        ->groupEnd();
+    }
+
+    $allowedSort = ['created_at', 'nama'];
+    if (! in_array($sort, $allowedSort, true)) {
+        $sort = 'created_at';
+    }
+    $builder->orderBy($sort, 'DESC');
+
+    // Pagination
+    $total   = (clone $builder)->countAllResults(false);
+    $results = $builder->get(($page - 1) * $perPage, $perPage)->getResult();
+
+    $meta = service('paginationSvc')->buildMeta($page, $perPage, $total);
+    return $this->success($results, null, $meta);
+}
 
 	#[OAT\Get(
 		path: "/forums/recommended",
@@ -146,6 +209,31 @@ class ForumController extends BaseAPIController
 			new OAT\Response(response: 404, description: "Not found")
 		]
 	)]
+
+	public function members(int $forumId)
+{
+    // Pastikan user login
+    $current = $this->currentUser();
+    if (! $current) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'message' => 'User tidak terautentikasi'
+            ]);
+    }
+
+    $db      = db_connect();
+    $builder = $db->table('anggota_forum af')
+        ->select('af.anggota_id, af.user_id, af.joined_at, u.nama, u.nim, u.email')
+        ->join('users u', 'u.user_id = af.user_id', 'inner')
+        ->where('af.forum_id', $forumId);
+
+    $rows = $builder->get()->getResultArray();
+
+    // Format sesuai yang Android harapkan: { data: [ { user_id, nama, ... } ] }
+    return $this->success($rows);
+}
+
 	public function show(int $forumId)
 	{
 		$forum = (new ForumModel())->find($forumId);

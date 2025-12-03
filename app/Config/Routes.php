@@ -34,6 +34,57 @@ $routes->group('', ['filter' => 'jwt'], static function (RouteCollection $routes
 	$routes->post('forums/(:num)/leave', 'API\ForumMemberController::leave/$1', ['filter' => 'forumMember']);
 	$routes->get('forums/(:num)/members', 'API\ForumMemberController::members/$1');
 	$routes->patch('forums/(:num)/members/(:num)', 'API\ForumMemberController::update/$1/$2', ['filter' => 'forumAdmin']);
+    // ========================
+    // Forum Routes
+    // ========================
+    $routes->get('forums', 'ForumController::index', ['filter' => 'jwt']);
+    $routes->post('forums', 'ForumController::store', ['filter' => 'jwt']);
+    $routes->get('forums/(:num)', 'ForumController::show/$1');
+    $routes->put('forums/(:num)', 'ForumController::update/$1');
+    $routes->delete('forums/(:num)', 'ForumController::delete/$1');
+
+    // TAMBAHKAN INI:
+    $routes->post('forums/(:num)/join', 'ForumController::join/$1', ['filter' => 'jwt']);
+    $routes->post('forums/(:num)/leave', 'ForumController::leave/$1', ['filter' => 'jwt']);
+
+    // ========================
+    // Task Routes
+    // ========================
+
+    // List & create task per forum
+    $routes->get('forums/(:num)/tasks', 'TaskController::index/$1', ['filter' => 'jwt']);
+    $routes->post('forums/(:num)/tasks', 'TaskController::store/$1', ['filter' => 'jwt']);
+
+    // Operasi ke satu task
+    $routes->get('tasks/(:num)', 'TaskController::show/$1', ['filter' => 'jwt']);
+    $routes->patch('tasks/(:num)', 'TaskController::update/$1', ['filter' => 'jwt']);
+    $routes->delete('tasks/(:num)', 'TaskController::destroy/$1', ['filter' => 'jwt']);
+
+    // ========================
+    // Note Routes
+    // ========================
+
+    // List & create catatan per forum
+    $routes->get('forums/(:num)/notes', 'NoteController::index/$1', ['filter' => 'jwt']);
+    $routes->post('forums/(:num)/notes', 'NoteController::store/$1', ['filter' => 'jwt']);
+
+    // Operasi per-note by id
+    $routes->get('notes/(:num)', 'NoteController::show/$1', ['filter' => 'jwt']);
+    $routes->patch('notes/(:num)', 'NoteController::update/$1', ['filter' => 'jwt']);
+    $routes->delete('notes/(:num)', 'NoteController::destroy/$1', ['filter' => 'jwt']);
+
+    // ========================
+    // Discussion Routes
+    // ========================
+    $routes->get('forums/(:num)/discussions', 'DiscussionController::index/$1', ['filter' => 'jwt']);
+    $routes->post('forums/(:num)/discussions', 'DiscussionController::store/$1', ['filter' => 'jwt']);
+
+    $routes->post('discussions/(:num)/replies', 'DiscussionController::reply/$1', ['filter' => 'jwt']);
+
+    $routes->get('discussions/(:num)', 'DiscussionController::show/$1', ['filter' => 'jwt']);
+    $routes->patch('discussions/(:num)', 'DiscussionController::update/$1', ['filter' => 'jwt']);
+    $routes->delete('discussions/(:num)', 'DiscussionController::destroy/$1', ['filter' => 'jwt']);
+    $routes->get('forums/(:num)/members', 'ForumController::members/$1', ['filter' => 'jwt']);
 
 	// Tasks
 	$routes->post('forums/(:num)/tasks', 'API\TaskController::store/$1', ['filter' => 'forumMember']);

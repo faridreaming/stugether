@@ -34,27 +34,40 @@ class TaskController extends BaseAPIController
 			new OAT\Response(response: 400, description: "Bad Request")
 		]
 	)]
-	public function store(int $forumId)
-	{
-		$rules = config('Validation')->taskStore;
-		if (! $this->validate($rules)) {
-			return $this->fail(implode('; ', $this->validator->getErrors()), 400);
-		}
-		$data    = $this->request->getJSON(true) ?? $this->request->getPost();
-		$current = $this->currentUser();
-		$model   = new KanbanModel();
-		$taskId  = $model->insert([
-			'forum_id'      => $forumId,
-			'judul'         => $data['judul'],
-			'deskripsi'     => $data['deskripsi'] ?? null,
-			'tenggat_waktu' => $data['tenggat_waktu'] ?? null,
-			'file_url'      => $data['file_url'] ?? null,
-			'status'        => 'todo',
-			'created_by'    => $current->user_id,
-		], true);
-		$task = $model->find($taskId);
-		return $this->success($task, 'Created', null, 201);
-	}
+public function store(int $forumId)
+{
+    $rules = config('Validation')->taskStore;
+    if (! $this->validate($rules)) {
+        return $this->fail(implode('; ', $this->validator->getErrors()), 400);
+    }
+
+    // JANGAN pakai getJSON(true) langsung, karena Android kirim form-urlencoded
+    $data = $this->request->getPost(); // ambil dari form (Android)
+
+    // Optional: kalau suatu saat ada client lain kirim JSON, tetap support
+    if ($data === [] || $data === null) {
+        $json = $this->request->getJSON(true);
+        if (is_array($json)) {
+            $data = $json;
+        }
+    }
+
+    $current = $this->currentUser();
+    $model   = new KanbanModel();
+
+    $taskId  = $model->insert([
+        'forum_id'      => $forumId,
+        'judul'         => $data['judul'] ?? null,
+        'deskripsi'     => $data['deskripsi'] ?? null,
+        'tenggat_waktu' => $data['tenggat_waktu'] ?? null,
+        'file_url'      => $data['file_url'] ?? null,
+        'status'        => 'todo',
+        'created_by'    => $current->user_id,
+    ], true);
+
+    $task = $model->find($taskId);
+    return $this->success($task, 'Created', null, 201);
+}
 
 	#[OAT\Get(
 		path: "/forums/{id}/tasks",
@@ -71,7 +84,7 @@ class TaskController extends BaseAPIController
 		],
 		responses: [new OAT\Response(response: 200, description: "OK")]
 	)]
-	public function index(int $forumId)
+		public function index(int $forumId)
 	{
 		$status    = $this->request->getGet('status');
 		$q         = trim((string) ($this->request->getGet('q') ?? ''));
@@ -80,15 +93,18 @@ class TaskController extends BaseAPIController
 		$perPage   = min(100, max(1, (int) ($this->request->getGet('per_page') ?? 10)));
 
 		$builder = (new KanbanModel())->builder()->where('forum_id', $forumId);
+
 		if (in_array($status, ['todo', 'doing', 'done'], true)) {
 			$builder->where('status', $status);
 		}
+
 		if ($q !== '') {
 			$builder->groupStart()
 				->like('judul', $q)
 				->orLike('deskripsi', $q)
 			->groupEnd();
 		}
+
 		$sortMap = ['deadline' => 'tenggat_waktu', 'created_at' => 'created_at'];
 		$orderBy = $sortMap[$sort] ?? 'created_at';
 		$builder->orderBy($orderBy, 'DESC');
@@ -96,6 +112,7 @@ class TaskController extends BaseAPIController
 		$total   = (clone $builder)->countAllResults(false);
 		$data    = $builder->get(($page - 1) * $perPage, $perPage)->getResult();
 		$meta    = service('paginationSvc')->buildMeta($page, $perPage, $total);
+
 		return $this->success($data, null, $meta);
 	}
 
@@ -143,26 +160,56 @@ class TaskController extends BaseAPIController
 			new OAT\Response(response: 403, description: "Forbidden")
 		]
 	)]
-	public function update(int $taskId)
-	{
-		$rules = config('Validation')->taskUpdate;
-		if (! $this->validate($rules)) {
-			return $this->fail(implode('; ', $this->validator->getErrors()), 400);
-		}
-		$model = new KanbanModel();
-		$task  = $model->find($taskId);
-		if (! $task) {
-			return $this->fail('Task not found', 404);
-		}
-		if (! $this->canManageTask($task->forum_id, $task->created_by)) {
-			return $this->fail('Forbidden', 403);
-		}
+public function update(int $id)
+{
+    // JANGAN pakai getJSON(true) langsung, karena Android kirim form-urlencoded
+    // Coba getJSON dulu, kalau null berarti form-urlencoded, pakai getPost()
+    $data = $this->request->getJSON(true);
+    if ($data === null) {
+        $data = $this->request->getPost();
+    }
 
-		$data  = $this->request->getJSON(true) ?? $this->request->getRawInput();
-		$patch = array_intersect_key($data, array_flip(['judul', 'deskripsi', 'tenggat_waktu', 'status', 'file_url']));
-		$model->update($taskId, $patch);
-		return $this->success($model->find($taskId), 'Updated');
-	}
+    $current = $this->currentUser();
+    if ($current === null) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON(['message' => 'User tidak terautentikasi']);
+    }
+
+    $model = new KanbanModel();
+    $task = $model->find($id);
+
+    if ($task === null) {
+        return $this->fail('Task tidak ditemukan', 404);
+    }
+
+    // Update hanya field yang dikirim
+    $updateData = [];
+    if (isset($data['judul'])) {
+        $updateData['judul'] = $data['judul'];
+    }
+    if (isset($data['deskripsi'])) {
+        $updateData['deskripsi'] = $data['deskripsi'];
+    }
+    if (isset($data['status'])) {
+        $updateData['status'] = $data['status'];
+    }
+    if (isset($data['tenggat_waktu'])) {
+        $updateData['tenggat_waktu'] = $data['tenggat_waktu'];
+    }
+    if (isset($data['file_url'])) {
+        $updateData['file_url'] = $data['file_url'];
+    }
+
+    if (empty($updateData)) {
+        return $this->fail('Tidak ada data yang diupdate', 400);
+    }
+
+    $model->update($id, $updateData);
+    $updated = $model->find($id);
+
+    return $this->success($updated, 'Updated');
+}
 
 	#[OAT\Delete(
 		path: "/tasks/{id}",
