@@ -30,9 +30,11 @@ $routes->group('', ['filter' => 'jwt'], static function (RouteCollection $routes
 	$routes->delete('forums/(:num)', 'API\ForumController::destroy/$1', ['filter' => 'forumAdmin']);
 
 	// Forum members
+	$routes->post('join/forum', 'API\ForumMemberController::joinByCode');
 	$routes->post('forums/(:num)/join', 'API\ForumMemberController::join/$1');
 	$routes->post('forums/(:num)/leave', 'API\ForumMemberController::leave/$1', ['filter' => 'forumMember']);
 	$routes->get('forums/(:num)/members', 'API\ForumMemberController::members/$1');
+	$routes->get('forums/(:num)/membership', 'API\ForumMemberController::membership/$1');
 	$routes->patch('forums/(:num)/members/(:num)', 'API\ForumMemberController::update/$1/$2', ['filter' => 'forumAdmin']);
 
 	// Tasks
@@ -50,11 +52,11 @@ $routes->group('', ['filter' => 'jwt'], static function (RouteCollection $routes
 
 	// Discussions
 	$routes->post('forums/(:num)/discussions', 'API\DiscussionController::store/$1', ['filter' => 'forumMember']);
-	$routes->post('discussions/(:num)/replies', 'API\DiscussionController::reply/$1', ['filter' => 'forumMember']);
+	$routes->post('discussions/(:num)/replies', 'API\DiscussionController::reply/$1', ['filter' => 'discussionMember']);
 	$routes->get('forums/(:num)/discussions', 'API\DiscussionController::index/$1');
 	$routes->get('discussions/(:num)', 'API\DiscussionController::show/$1');
-	$routes->patch('discussions/(:num)', 'API\DiscussionController::update/$1');
-	$routes->delete('discussions/(:num)', 'API\DiscussionController::destroy/$1');
+	$routes->patch('discussions/(:num)', 'API\DiscussionController::update/$1', ['filter' => 'discussionMember']);
+	$routes->delete('discussions/(:num)', 'API\DiscussionController::destroy/$1', ['filter' => 'discussionMember']);
 
 	// Notes
 	$routes->post('forums/(:num)/notes', 'API\NoteController::store/$1', ['filter' => 'forumMember']);

@@ -15,6 +15,7 @@ use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\JwtAuthFilter;
 use App\Filters\ForumMemberFilter;
 use App\Filters\ForumAdminFilter;
+use App\Filters\DiscussionMemberFilter;
 
 class Filters extends BaseFilters
 {
@@ -38,9 +39,10 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         // Custom application filters
-        'jwt'           => JwtAuthFilter::class,
-        'forumMember'   => ForumMemberFilter::class,
-        'forumAdmin'    => ForumAdminFilter::class,
+        'jwt'              => JwtAuthFilter::class,
+        'forumMember'      => ForumMemberFilter::class,
+        'forumAdmin'       => ForumAdminFilter::class,
+        'discussionMember' => DiscussionMemberFilter::class,
     ];
 
     /**
@@ -60,11 +62,13 @@ class Filters extends BaseFilters
         'before' => [
             'forcehttps', // Force Global Secure Requests
             'pagecache',  // Web Page Caching
+            'cors',       // CORS - must be in required to handle preflight OPTIONS requests
         ],
         'after' => [
             'pagecache',   // Web Page Caching
             'performance', // Performance Metrics
             'toolbar',     // Debug Toolbar
+            'cors',        // CORS - also needed in after to set response headers
         ],
     ];
 

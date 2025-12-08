@@ -61,12 +61,14 @@ class Validation extends BaseConfig
         'nama'        => 'required|max_length[100]',
         'jenis_forum' => 'permit_empty|in_list[publik,privat]',
         'deskripsi'   => 'permit_empty',
+        'allow_media_upload' => 'permit_empty|in_list[0,1,true,false]',
     ];
 
     public array $forumUpdate = [
         'nama'        => 'permit_empty|max_length[100]',
         'jenis_forum' => 'permit_empty|in_list[publik,privat]',
         'deskripsi'   => 'permit_empty',
+        'allow_media_upload' => 'permit_empty|in_list[0,1]',
     ];
 
     public array $forumJoin = [

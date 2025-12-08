@@ -15,7 +15,7 @@ class AnggotaForumModel extends Model
 	protected $returnType    = AnggotaForum::class;
 	protected $useTimestamps = false;
 	protected $allowedFields = [
-		'forum_id', 'user_id', 'allowed_upload', 'joined_at',
+		'forum_id', 'user_id', 'allowed_upload', 'join_method', 'joined_at',
 	];
 
 	public function isMember(int $forumId, int $userId): bool

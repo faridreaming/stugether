@@ -15,6 +15,7 @@ class DiscussionTreeService
 		$byId = [];
 		foreach ($items as $item) {
 			$item['children'] = [];
+			$item['replies'] = [];
 			$byId[$item['discussion_id']] = $item;
 		}
 
@@ -23,6 +24,7 @@ class DiscussionTreeService
 			$parentId = $node['parent_id'] ?? null;
 			if ($parentId && isset($byId[$parentId])) {
 				$byId[$parentId]['children'][] = &$node;
+				$byId[$parentId]['replies'][] = &$node;
 			} else {
 				$roots[] = &$node;
 			}

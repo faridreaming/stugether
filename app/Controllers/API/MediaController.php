@@ -52,8 +52,13 @@ class MediaController extends BaseAPIController
 	)]
 	public function store()
 	{
+		// Check if request is JSON based on Content-Type
+		$contentType = $this->request->getHeaderLine('Content-Type');
+		$isJson = str_contains($contentType, 'application/json');
+		$jsonData = $isJson ? ($this->request->getJSON(true) ?? []) : [];
+
 		// Validate via PHP side to allow optional note/ref
-		$forumId = (int) ($this->request->getPost('forum_id') ?? $this->request->getJSON(true)['forum_id'] ?? 0);
+		$forumId = (int) ($this->request->getVar('forum_id') ?? $jsonData['forum_id'] ?? 0);
 		if ($forumId <= 0) {
 			return $this->fail('forum_id is required', 400);
 		}
@@ -63,15 +68,15 @@ class MediaController extends BaseAPIController
 		if ($file && $file->isValid()) {
 			$fileUrl = $this->moveUploadedFile($file, $forumId);
 		} else {
-			$body    = $this->request->getJSON(true) ?? $this->request->getPost();
+			$body    = $isJson ? $jsonData : $this->request->getVar();
 			$fileUrl = $body['file_url'] ?? null;
 			if (! $fileUrl) {
 				return $this->fail('No file or file_url provided', 400);
 			}
 		}
 
-		$noteId = (int) ($this->request->getPost('note_id') ?? $this->request->getJSON(true)['note_id'] ?? 0);
-		$refId  = (int) ($this->request->getPost('ref_id') ?? $this->request->getJSON(true)['ref_id'] ?? 0);
+		$noteId = (int) ($this->request->getVar('note_id') ?? $jsonData['note_id'] ?? 0);
+		$refId  = (int) ($this->request->getVar('ref_id') ?? $jsonData['ref_id'] ?? 0);
 
 		$id = (new MediaModel())->insert([
 			'user_id'  => $current->user_id,

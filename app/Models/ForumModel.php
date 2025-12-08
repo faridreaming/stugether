@@ -15,7 +15,7 @@ class ForumModel extends Model
 	protected $returnType     = Forum::class;
 	protected $useTimestamps  = false;
 	protected $allowedFields  = [
-		'admin_id', 'nama', 'deskripsi', 'kode_undangan', 'jenis_forum', 'is_public',
+		'admin_id', 'nama', 'deskripsi', 'kode_undangan', 'jenis_forum', 'allow_media_upload',
 	];
 }
 

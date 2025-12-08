@@ -11,7 +11,7 @@ use CodeIgniter\Entity\Entity;
  * @property string|null $deskripsi
  * @property string|null $kode_undangan
  * @property string      $jenis_forum
- * @property int         $is_public
+ * @property int         $allow_media_upload
  * @property string|null $created_at
  * @property string|null $updated_at
  *
@@ -26,7 +26,7 @@ class Forum extends Entity
 	protected $casts = [
 		'forum_id'  => 'integer',
 		'admin_id'  => 'integer',
-		'is_public' => 'integer',
+		'allow_media_upload' => 'integer',
 	];
 }
 
