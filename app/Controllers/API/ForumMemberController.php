@@ -248,7 +248,7 @@ class ForumMemberController extends BaseAPIController
 	public function members(int $forumId)
 	{
 		$builder = (new AnggotaForumModel())->builder()
-			->select('u.user_id, u.nama, u.email, af.allowed_upload, af.join_method, af.joined_at')
+			->select('u.user_id, u.nama, u.nim, u.kelas, u.email, af.allowed_upload, af.join_method, af.joined_at')
 			->from('anggota_forum af')
 			->join('users u', 'u.user_id = af.user_id', 'inner')
 			->where('af.forum_id', $forumId)
@@ -280,11 +280,13 @@ class ForumMemberController extends BaseAPIController
 		$isCreator = ((int) $forum->admin_id === (int) $user->user_id);
 		$isMember  = $member !== null;
 		$joinMethod = $member ? ($member->join_method ?? 'public') : null;
+		$isPublicForum = $forum->jenis_forum === 'publik';
 		
 		// User dapat menambah tugas jika:
 		// 1. User adalah creator forum
-		// 2. User bergabung via invitation_code
-		$canAddTask = $isCreator || $joinMethod === 'invitation_code' || $joinMethod === 'creator';
+		// 2. User bergabung via invitation_code (untuk forum privat)
+		// 3. Forum publik - semua user yang login bisa CRUD task
+		$canAddTask = $isCreator || $joinMethod === 'invitation_code' || $joinMethod === 'creator' || $isPublicForum;
 		
 		return $this->success([
 			'forum_id'     => $forumId,

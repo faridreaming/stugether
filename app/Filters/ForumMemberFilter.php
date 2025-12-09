@@ -25,14 +25,22 @@ class ForumMemberFilter implements FilterInterface
 			return $this->forbidden('Forum not found');
 		}
 
-		// Allow public forum reads
-		if ($method === 'GET' && (int) ($forum->is_public ?? 0) === 1) {
+		// Check if forum is public
+		$isPublicForum = $forum->jenis_forum === 'publik';
+
+		// Allow public forum reads without auth
+		if ($method === 'GET' && $isPublicForum) {
 			return null;
 		}
 
 		$currentUser = service('authUser')->getUser();
 		if (! $currentUser) {
 			return $this->forbidden('Authentication required');
+		}
+
+		// Allow all authenticated users to perform CRUD on public forums
+		if ($isPublicForum) {
+			return null;
 		}
 
 		$member = (new AnggotaForumModel())->where([

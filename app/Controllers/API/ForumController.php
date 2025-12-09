@@ -174,6 +174,20 @@ class ForumController extends BaseAPIController
 		}
 	} elseif ($scope === 'public') {
 		$builder->where('jenis_forum', 'publik');
+		
+		// Filter out forums that user has already joined (for recommendation tab)
+		$joinedForumIds = (new AnggotaForumModel())->builder()
+			->select('forum_id')
+			->where('user_id', $current->user_id)
+			->get()
+			->getResultArray();
+		
+		$joinedIds = array_column($joinedForumIds, 'forum_id');
+		if (!empty($joinedIds)) {
+			$builder->whereNotIn('forums.forum_id', $joinedIds);
+		}
+		
+		log_message('debug', 'ForumController::index() - scope=public - Excluding joined forums: ' . json_encode($joinedIds));
 	}
 	
 	if ($q !== '') {
@@ -191,13 +205,18 @@ class ForumController extends BaseAPIController
 
 	// Pagination
 	$total   = (clone $builder)->countAllResults(false);
-	$results = $builder->get(($page - 1) * $perPage, $perPage)->getResult();
+	$offset  = ($page - 1) * $perPage;
+	$results = $builder->get($perPage, $offset)->getResult();
 
-	// Add member count to each forum
+	// Add member count and membership status to each forum
 	$anggotaModel = new AnggotaForumModel();
 	foreach ($results as $forum) {
 		$memberCount = $anggotaModel->where('forum_id', $forum->forum_id)->countAllResults();
 		$forum->jumlah_anggota = $memberCount;
+		
+		// Check if current user is a member of this forum
+		$isMember = $anggotaModel->where(['forum_id' => $forum->forum_id, 'user_id' => $current->user_id])->countAllResults() > 0;
+		$forum->is_member = $isMember;
 	}
 
 	$meta = service('paginationSvc')->buildMeta($page, $perPage, $total);

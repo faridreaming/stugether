@@ -259,11 +259,23 @@ class TaskController extends BaseAPIController
 		if (! $current) {
 			return false;
 		}
+		// Task creator can always manage
 		if ((int) $createdBy === (int) $current->user_id) {
 			return true;
 		}
 		$forum = (new ForumModel())->find($forumId);
-		return $forum && (int) $forum->admin_id === (int) $current->user_id;
+		if (! $forum) {
+			return false;
+		}
+		// Forum admin can manage all tasks
+		if ((int) $forum->admin_id === (int) $current->user_id) {
+			return true;
+		}
+		// Any logged-in user can manage tasks in public forums
+		if ($forum->jenis_forum === 'publik') {
+			return true;
+		}
+		return false;
 	}
 
 	private function moveUploadedFile(\CodeIgniter\HTTP\Files\UploadedFile $file, int $forumId): string
